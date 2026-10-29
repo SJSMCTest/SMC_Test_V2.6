@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMC Trading Journal & Smart Risk Calculator V2.6</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Kanit', sans-serif;
+      background-color: #0d0f12;
+      color: #e1e7ef;
+    }
+    .card-bg {
+      background-color: #161b22;
+      border: 1px solid #21262d;
+    }
+    .gold-accent {
+      color: #d4af37;
+    }
+    .gold-bg {
+      background-color: #d4af37;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0d0f12;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #21262d;
+      border-radius: 3px;
+    }
+    @keyframes pulse-gold {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(212, 175, 55, 0); }
+    }
+    .agent-active-pulse {
+      animation: pulse-gold 2s infinite;
+    }
+  </style>
+</head>
+<body class="custom-scrollbar min-h-screen pb-12">
+
+  <!-- Header Navigation -->
+  <header class="border-b border-gray-800 bg-[#11151c] sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg gold-bg flex items-center justify-center text-black font-bold text-xl">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
+            SMC JOURNAL & RISK AGENT <span class="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">V2.6 PRO</span>
+          </h1>
+          <p class="text-xs text-gray-400">Smart Position Sizing, %Risk Management & Multi-TF Scanner</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-gray-900 border border-yellow-500/40 rounded-lg px-3 py-1.5 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-2"></span>
+          <span class="text-gray-400 mr-1.5">XAU/USD:</span>
+          <span id="headerLivePrice" class="text-yellow-400 font-bold font-mono text-sm">Loading...</span>
+        </div>
+
+        <div class="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs">
+          <i class="fa-solid fa-coins text-yellow-500 mr-2"></i>
+          <select id="viewCurrencyMode" onchange="changeCurrencyMode(this.value)" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
+            <option value="ALL_IN_USD" class="bg-gray-900">รวมเป็น USD ($)</option>
+            <option value="ONLY_USD" class="bg-gray-900">เฉพาะ USD ($)</option>
+            <option value="ONLY_USDC" class="bg-gray-900">เฉพาะ USDc (¢)</option>
+          </select>
+        </div>
+
+        <button onclick="openTradeModal()" class="gold-bg hover:bg-yellow-500 text-black font-semibold px-4 py-2 rounded-lg text-sm transition flex items-center shadow-lg shadow-yellow-500/10">
+          <i class="fa-solid fa-plus mr-2"></i> บันทึกออเดอร์
+        </button>
+        <button onclick="exportCSV()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm px-3 py-2 rounded-lg border border-gray-700 transition">
+          <i class="fa-solid fa-file-csv"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+    <!-- SMC MULTI-TIMEFRAME AGENT & TRADINGVIEW TERMINAL -->
+    <div class="lg:col-span-4 card-bg rounded-xl p-5 border border-yellow-500/30 shadow-xl">
+      <div class="flex flex-wrap justify-between items-center mb-4 pb-3 border-b border-gray-800 gap-3">
+        <div class="flex items-center space-x-3">
+          <div id="agentStatusDot" class="w-3 h-3 rounded-full bg-emerald-400 agent-active-pulse"></div>
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-crosshairs gold-accent"></i> SMC MULTI-TF MARKET SCANNER (XAU/USD)
+            </h2>
+            <p class="text-xs text-gray-400">สแกนโครงสร้างและคำนวณแผนเทรดอัตโนมัติ (1D / 4H / 1H / 15M)</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="bg-gray-900 p-1 rounded-lg border border-gray-700 flex text-xs">
+            <button type="button" id="tfBtn_15m" onclick="switchScannerTF('15m')" class="px-2.5 py-1 rounded-md text-gray-400 hover:text-white transition font-semibold">15M</button>
+            <button type="button" id="tfBtn_1h" onclick="switchScannerTF('1h')" class="px-2.5 py-1 rounded-md bg-yellow-500 text-black font-semibold transition">1H</button>
+            <button type="button" id="tfBtn_4h" onclick="switchScannerTF('4h')" class="px-2.5 py-1 rounded-md text-gray-400 hover:text-white transition font-semibold">4H</button>
+            <button type="button" id="tfBtn_1d" onclick="switchScannerTF('1d')" class="px-2.5 py-1 rounded-md text-gray-400 hover:text-white transition font-semibold">1D</button>
+          </div>
+
+          <button id="btnScanNow" onclick="runActiveTFScan(true)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center shadow-lg shadow-emerald-500/20">
+            <i class="fa-solid fa-bolt mr-1.5"></i> <span id="scanBtnLabel">สแกน 1H ทันที</span>
+          </button>
+          <button id="btnToggleNotif" onclick="toggleBrowserNotification()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-3 py-1.5 rounded-lg border border-gray-700 transition flex items-center">
+            <i class="fa-solid fa-bell text-yellow-400 mr-1.5"></i> <span id="notifStatusText">แจ้งเตือน</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-7 bg-[#0b0e14] rounded-xl overflow-hidden border border-gray-800 h-[430px]" id="tv_chart_container"></div>
+        <div class="lg:col-span-5 flex flex-col justify-between bg-gray-900/60 rounded-xl p-4 border border-gray-800 h-[430px]">
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-yellow-400 flex items-center">
+                <i class="fa-solid fa-radar mr-1.5"></i> <span id="feedTitleTF">1H SETUP SCANNER FEED</span>
+              </span>
+              <span id="agentLastUpdate" class="text-[11px] text-gray-500">อัปเดต: -</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3 bg-gray-950 p-2.5 rounded-lg border border-gray-800 text-center text-xs">
+              <div>
+                <span id="labelPrevHigh" class="text-gray-500 block text-[10px]">Prev High (BSL)</span>
+                <span id="agentPrevHigh" class="font-mono font-bold text-emerald-400">-</span>
+              </div>
+              <div>
+                <span class="text-gray-500 block text-[10px]">ราคาตลาด XAUUSD</span>
+                <span id="agentCurrPrice" class="font-mono font-bold text-yellow-400">-</span>
+              </div>
+              <div>
+                <span id="labelPrevLow" class="text-gray-500 block text-[10px]">Prev Low (SSL)</span>
+                <span id="agentPrevLow" class="font-mono font-bold text-red-400">-</span>
+              </div>
+            </div>
+          </div>
+          <div id="agentNotificationFeed" class="space-y-2.5 overflow-y-auto custom-scrollbar pr-1 flex-1"></div>
+          <div class="pt-3 mt-2 border-t border-gray-800 flex justify-between items-center text-[11px] text-gray-400">
+            <span><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> กด "+ ใช้แผนนี้" ระบบจะคำนวณ Lot ให้อัตโนมัติ</span>
+            <button onclick="clearAgentFeed()" class="hover:text-white transition">ล้างประวัติ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Summary Dashboard -->
+    <div class="lg:col-span-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="card-bg p-4 rounded-xl border-l-4 border-yellow-500">
+        <div class="flex justify-between items-center">
+          <p class="text-xs text-gray-400 font-medium">กำไร/ขาดทุน สุทธิ (Net P/L)</p>
+          <span id="kpiCurrencyBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-semibold">USD</span>
+        </div>
+        <p id="kpiNetPL" class="text-2xl font-bold mt-1 text-white">$0.00</p>
+        <p id="kpiSubNetPL" class="text-[11px] text-gray-500 mt-0.5"></p>
+      </div>
+      <div class="card-bg p-4 rounded-xl border-l-4 border-emerald-500">
+        <p class="text-xs text-gray-400 font-medium">Win Rate (%)</p>
+        <p id="kpiWinRate" class="text-2xl font-bold mt-1 text-emerald-400">0.0%</p>
+      </div>
+      <div class="card-bg p-4 rounded-xl border-l-4 border-blue-500">
+        <p class="text-xs text-gray-400 font-medium">จำนวนเทรดทั้งหมด</p>
+        <p id="kpiTotalTrades" class="text-2xl font-bold mt-1 text-blue-400">0 ไม้</p>
+      </div>
+      <div class="card-bg p-4 rounded-xl border-l-4 border-purple-500">
+        <p class="text-xs text-gray-400 font-medium">Profit Factor (PF)</p>
+        <p id="kpiPF" class="text-2xl font-bold mt-1 text-purple-400">0.00</p>
+      </div>
+      <div class="card-bg p-4 rounded-xl border-l-4 border-red-500 col-span-2 md:col-span-1">
+        <p class="text-xs text-gray-400 font-medium">อารมณ์พบบ่อยสุด</p>
+        <p id="kpiTopEmotion" class="text-base font-bold mt-1 text-red-400 truncate">-</p>
+      </div>
+    </div>
+
+    <!-- Left Content Area -->
+    <div class="lg:col-span-3 space-y-6">
+      <div class="card-bg p-5 rounded-xl">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center">
+              <i class="fa-solid fa-chart-column text-emerald-400 mr-2"></i> กราฟวิเคราะห์กำไร/ขาดทุน (P/L Performance)
+            </h2>
+            <p id="pnlChartSubtitle" class="text-xs text-gray-400 mt-0.5">แสดงความเปลี่ยนแปลงรายวัน แยกสีตามสัดส่วนกำไรและขาดทุน</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="bg-gray-900 p-1 rounded-lg border border-gray-800 flex text-xs">
+              <button type="button" id="btnViewDaily" onclick="setPnlChartMode('DAILY')" class="px-3 py-1 rounded-md bg-yellow-500 text-black font-semibold transition">รายวัน</button>
+              <button type="button" id="btnViewMonthly" onclick="setPnlChartMode('MONTHLY')" class="px-3 py-1 rounded-md text-gray-400 hover:text-white transition">รายเดือน</button>
+            </div>
+            <select id="filterMonth" onchange="onFilterDateChange()" class="bg-gray-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer">
+              <option value="0">มกราคม</option><option value="1">กุมภาพันธ์</option><option value="2">มีนาคม</option><option value="3">เมษายน</option><option value="4">พฤษภาคม</option><option value="5">มิถุนายน</option><option value="6">กรกฎาคม</option><option value="7">สิงหาคม</option><option value="8">กันยายน</option><option value="9">ตุลาคม</option><option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+            </select>
+            <select id="filterYear" onchange="onFilterDateChange()" class="bg-gray-900 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-yellow-400 font-semibold focus:outline-none cursor-pointer"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-4 bg-gray-900/50 p-3 rounded-lg border border-gray-800 text-xs">
+          <div><span class="text-gray-400 block">ผลรวมช่วงนี้:</span><span id="chartPeriodNet" class="text-sm font-bold text-white">$0.00</span></div>
+          <div><span class="text-gray-400 block">กำไรสูงสุด (Best):</span><span id="chartPeriodBest" class="text-sm font-bold text-emerald-400">$0.00</span></div>
+          <div><span class="text-gray-400 block">ขาดทุนหนัก (Worst):</span><span id="chartPeriodWorst" class="text-sm font-bold text-red-400">$0.00</span></div>
+        </div>
+        <div class="w-full h-64"><canvas id="pnlColumnChart"></canvas></div>
+      </div>
+
+      <div class="card-bg p-5 rounded-xl">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+          <div class="flex items-center space-x-3">
+            <h2 class="text-lg font-bold text-white flex items-center"><i class="fa-regular fa-calendar-days gold-accent mr-2"></i> ปฏิทินบันทึกรายวัน</h2>
+            <span id="calendarMonthYear" class="text-sm font-semibold bg-gray-800 text-yellow-400 px-3 py-1 rounded-md border border-gray-700"></span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg bg-gray-800 text-gray-300 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+            <button onclick="resetToToday()" class="px-2.5 h-8 rounded-lg bg-gray-800 text-xs text-gray-300">เดือนนี้</button>
+            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg bg-gray-800 text-gray-300 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-2 text-center font-semibold text-xs text-gray-400 border-b border-gray-800 pb-2 mb-2">
+          <div>อา.</div><div>จ.</div><div>อ.</div><div>พ.</div><div>พฤ.</div><div>ศ.</div><div>ส.</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-2 text-sm"></div>
+      </div>
+
+      <div class="card-bg p-5 rounded-xl">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+          <h2 class="text-lg font-bold text-white flex items-center"><i class="fa-solid fa-list-check text-blue-400 mr-2"></i> รายการบันทึกออเดอร์ SMC ล่าสุด</h2>
+          <label class="flex items-center text-xs text-gray-300 cursor-pointer">
+            <input type="checkbox" id="tableFilterByMonth" onchange="renderTable()" class="mr-1.5 accent-yellow-500"> แสดงเฉพาะเดือนในปฏิทิน
+          </label>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-gray-800 text-xs text-gray-400 uppercase bg-[#0f131a]">
+                <th class="p-3">วันที่/เวลา</th><th class="p-3">คู่เงิน/ฝั่ง</th><th class="p-3">Setup SMC</th><th class="p-3">Entry / SL / TP</th><th class="p-3">R:R</th><th class="p-3">Lot / Risk</th><th class="p-3">ผลลัพธ์ (P/L)</th><th class="p-3">อารมณ์</th><th class="p-3 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="tradeLogTableBody" class="divide-y divide-gray-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="lg:col-span-1 space-y-6">
+      <div class="card-bg p-5 rounded-xl">
+        <h3 class="text-md font-bold text-white mb-2 flex items-center"><i class="fa-solid fa-square-check text-emerald-400 mr-2"></i> SMC 10-Point Checklist</h3>
+        <p class="text-xs text-gray-400 mb-3">เช็กก่อนเทรด: ตอบ "ยัง" ข้อเดียว = ห้ามเข้าออเดอร์</p>
+        <div class="space-y-2 text-xs text-gray-300 custom-scrollbar max-h-64 overflow-y-auto pr-1">
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 01. อยู่ที่ Key Zone สำคัญ (HTF)</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 02. มี Liquidity Sweep เหนือ/ใต้โซน</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 03. มี CHoCH/BOS ยืนยันโครงสร้าง</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 04. เกิด Displacement ทิ้งตัวแรง (FVG)</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 05. TF สอดคล้องกัน (HTF+LTF)</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 06. R:R คุ้มค่า (1:2 ขึ้นไป)</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 07. SL วางตามโครงสร้างจริง</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 08. คำนวณ % Risk / Lot เรียบร้อย</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 09. เทรดตามแผน ไม่ใช่ FOMO</label>
+          <label class="flex items-center p-2 rounded bg-gray-900 border border-gray-800"><input type="checkbox" class="mr-2 accent-yellow-500"> 10. ยอมรับความเสี่ยงไม้นี้ได้จริง</label>
+        </div>
+      </div>
+
+      <div class="card-bg p-5 rounded-xl">
+        <h3 class="text-md font-bold text-white mb-3">สัดส่วนการเทรดตาม SMC Setup</h3>
+        <div class="w-full h-52"><canvas id="setupChart"></canvas></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Trade Entry Modal with Fixed Lot Calculation & R:R Dropdown -->
+  <div id="tradeModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-bg w-full max-w-3xl rounded-2xl p-6 border border-gray-700 my-8 shadow-2xl relative custom-scrollbar max-h-[92vh] overflow-y-auto">
+      <button onclick="closeTradeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+
+      <h2 id="modalTitle" class="text-xl font-bold text-white mb-1 flex items-center">
+        <i class="fa-solid fa-calculator gold-accent mr-2"></i> บันทึกออเดอร์ SMC & คำนวณ Lot Size
+      </h2>
+      <p class="text-xs text-gray-400 mb-5">คำนวณขนาด Lot และความเสี่ยงให้อัตโนมัติตามระยะ SL เพื่อรักษาวินัยการเทรด</p>
+
+      <form id="tradeForm" onsubmit="handleSaveTrade(event)" class="space-y-4">
+        <input type="hidden" id="editTradeId" value="">
+
+        <!-- Section 1 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-900/40 p-3 rounded-xl border border-gray-800">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">วันที่/เวลา</label>
+            <input type="datetime-local" id="tradeDate" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">คู่เงิน</label>
+            <input type="text" id="tradePair" value="XAU/USD" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">ทิศทาง</label>
+            <select id="tradeDirection" onchange="calcSmartLotSize()" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+              <option value="SELL">SELL 🔴</option>
+              <option value="BUY">BUY 🔵</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-yellow-400 mb-1">พอร์ตเทรด</label>
+            <select id="tradeCurrency" onchange="updateCurrencyPlaceholder(); calcSmartLotSize();" required class="w-full bg-gray-900 border border-yellow-500/50 rounded-lg p-2 text-xs text-yellow-400 font-bold">
+              <option value="USD">USD ($) Standard</option>
+              <option value="USDc">USDc (¢) พอร์ตเซนต์</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section 2: Smart Risk & Lot Calculator -->
+        <div class="bg-gradient-to-r from-yellow-950/30 via-gray-900 to-gray-900 p-4 rounded-xl border border-yellow-500/40">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-yellow-400 flex items-center">
+              <i class="fa-solid fa-shield-halved mr-1.5"></i> คำนวณ Lot Size ตาม %Risk ของพอร์ต (XAUUSD Standard: 1 Lot = $100 ต่อ 1 จุด)
+            </span>
+            <span id="riskLevelBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-gray-800 text-gray-400 border border-gray-700">สถานะ: กำหนดค่า</span>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-3">
+            <div>
+              <label class="block text-gray-400 mb-1">ขนาดพอร์ต (Balance)</label>
+              <div class="relative">
+                <input type="number" step="any" id="calcBalance" oninput="calcSmartLotSize()" value="1000" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 text-white font-mono">
+                <span id="calcBalUnit" class="absolute right-2.5 top-2 text-[11px] text-gray-500">$</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-gray-400 mb-1">% ที่ยอมเสี่ยง (% Risk)</label>
+              <div class="relative">
+                <input type="number" step="0.1" id="calcRiskPercent" oninput="calcSmartLotSize()" value="2" class="w-full bg-gray-950 border border-yellow-500/50 rounded-lg p-2 text-yellow-400 font-bold font-mono">
+                <span class="absolute right-2.5 top-2 text-[11px] text-gray-500">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-gray-400 mb-1">จำนวนเงินที่ยอมเสีย (Risk $)</label>
+              <input type="text" id="calcRiskMoney" readonly class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-red-400 font-mono font-bold">
+            </div>
+            <div>
+              <label class="block text-gray-400 mb-1">Lot Size ที่แนะนำ (Auto)</label>
+              <input type="text" id="calcRecommendedLot" readonly class="w-full bg-yellow-500/10 border border-yellow-500/60 rounded-lg p-2 text-yellow-300 font-mono font-bold text-sm">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="block text-gray-300 mb-1">ราคาเข้า (Entry)</label>
+              <input type="number" step="any" id="tradeEntry" oninput="calcSmartLotSize()" placeholder="4034.00" required class="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 text-white font-mono">
+            </div>
+            <div>
+              <label class="block text-gray-300 mb-1">จุดตัดขาดทุน (SL)</label>
+              <input type="number" step="any" id="tradeSL" oninput="calcSmartLotSize()" placeholder="4038.00" required class="w-full bg-gray-950 border border-red-500/50 rounded-lg p-2 text-red-400 font-mono">
+            </div>
+            <div>
+              <label class="block text-gray-300 mb-1">อัตรา R:R (เลือกหรือพิมพ์)</label>
+              <select id="selectRR" onchange="onSelectRRChange()" class="w-full bg-gray-950 border border-yellow-500/50 rounded-lg p-2 text-yellow-400 font-bold">
+                <option value="1.5">1 : 1.5</option>
+                <option value="2.0" selected>1 : 2.0</option>
+                <option value="2.5">1 : 2.5</option>
+                <option value="3.0">1 : 3.0</option>
+                <option value="4.0">1 : 4.0</option>
+                <option value="5.0">1 : 5.0</option>
+                <option value="custom">กำหนดเอง...</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-300 mb-1">เป้าทำกำไร (TP Price)</label>
+              <input type="number" step="any" id="tradeTP" oninput="calcTPFromManual()" placeholder="อัตโนมัติ" required class="w-full bg-gray-950 border border-emerald-500/50 rounded-lg p-2 text-emerald-400 font-mono">
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-gray-400 flex justify-between">
+            <span id="calcSLPoints">ระยะ SL: -</span>
+            <span id="calcRewardPips">เป้าหมายกำไร: -</span>
+          </div>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Lot ที่บันทึก</label>
+            <input type="text" id="tradeLotRisk" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-yellow-400 font-mono font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">อัตราส่วน R:R</label>
+            <input type="text" id="tradeRR" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-yellow-400 font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">ผลลัพธ์การเทรด</label>
+            <select id="tradeResult" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+              <option value="Win">Win (ชนะกำไร) 🟢</option>
+              <option value="Loss">Loss (ชน SL) 🔴</option>
+              <option value="BE">BE (เสมอตัว) ⚪</option>
+            </select>
+          </div>
+          <div>
+            <label id="pnlLabel" class="block text-xs font-semibold text-gray-300 mb-1">กำไร/ขาดทุนสุทธิ ($)</label>
+            <input type="number" step="0.01" id="tradePNL" placeholder="เช่น 116.00" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white font-mono">
+          </div>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">รูปแบบ Setup SMC</label>
+            <select id="tradeSetup" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+              <option value="SMC Liquidity Sweep + BOS">SMC Sweep + BOS</option>
+              <option value="Order Block (OB) + FVG">OB + FVG Mitigation</option>
+              <option value="CHoCH Reversal">CHoCH LTF Reversal</option>
+              <option value="Premium/Discount Retest">Premium / Discount Retest</option>
+              <option value="Asian Range Breakout">Asian Range Breakout</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">ลิงก์ภาพกราฟ (TradingView URL)</label>
+            <input type="url" id="tradeChartUrl" placeholder="https://www.tradingview.com/x/..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-1.5">อารมณ์ขณะเทรด</label>
+          <div class="flex flex-wrap gap-1.5" id="emotionTags">
+            <button type="button" data-emo="มั่นใจตามแผน" onclick="toggleEmotion(this, 'มั่นใจตามแผน')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">😎 มั่นใจตามแผน</button>
+            <button type="button" data-emo="สงบ/นิ่งตามกฎ" onclick="toggleEmotion(this, 'สงบ/นิ่งตามกฎ')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">🧘 สงบ/นิ่งตามกฎ</button>
+            <button type="button" data-emo="มีวินัยตรง SL/TP" onclick="toggleEmotion(this, 'มีวินัยตรง SL/TP')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">🛡️ มีวินัยตรง SL/TP</button>
+            <button type="button" data-emo="กลัวตกรถ (FOMO)" onclick="toggleEmotion(this, 'กลัวตกรถ (FOMO)')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">😱 กลัวตกรถ (FOMO)</button>
+            <button type="button" data-emo="โลภอยากได้เพิ่ม" onclick="toggleEmotion(this, 'โลภอยากได้เพิ่ม')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">🤑 โลภอยากได้เพิ่ม</button>
+            <button type="button" data-emo="หัวร้อน/เทรดแก้แค้น" onclick="toggleEmotion(this, 'หัวร้อน/เทรดแก้แค้น')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">🔥 หัวร้อน/เทรดแก้แค้น</button>
+            <button type="button" data-emo="กังวลขณะถือไม้" onclick="toggleEmotion(this, 'กังวลขณะถือไม้')" class="emotion-btn border border-gray-700 bg-gray-900 text-xs px-2.5 py-1 rounded-full text-gray-300">😰 กังวลขณะถือไม้</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">แผนและเหตุผลก่อนเข้า (Pre-Trade)</label>
+            <textarea id="tradePreNote" rows="2" placeholder="เหตุผล SMC..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">สรุปผลหลังเทรด (Post-Trade)</label>
+            <textarea id="tradePostNote" rows="2" placeholder="ผลลัพธ์และข้อผิดพลาด..." class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white"></textarea>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-3">
+          <button type="button" onclick="closeTradeModal()" class="px-5 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm">ยกเลิก</button>
+          <button type="submit" class="gold-bg hover:bg-yellow-500 text-black font-bold px-6 py-2 rounded-lg text-sm shadow-lg">บันทึกออเดอร์</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="viewModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+    <div class="card-bg w-full max-w-xl rounded-2xl p-6 border border-gray-700 shadow-2xl relative">
+      <button onclick="closeViewModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+      <div id="viewModalContent"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    let trades = JSON.parse(localStorage.getItem('smc_trades')) || [];
+    let agentAlerts = JSON.parse(localStorage.getItem('smc_agent_alerts')) || [];
+    let currentDate = new Date();
+    let selectedEmotions = [];
+    let setupChartInstance = null;
+    let pnlColumnChartInstance = null;
+    let pnlChartMode = 'DAILY';
+    let currencyViewMode = localStorage.getItem('smc_currency_view') || 'ALL_IN_USD';
+    let lastUsedCurrency = localStorage.getItem('smc_last_currency') || 'USD';
+    let activeScannerTF = '1h';
+
+    let savedBalance = localStorage.getItem('smc_user_balance') || '2900';
+    let savedRiskPct = localStorage.getItem('smc_user_risk_pct') || '2';
+
+    const monthNamesFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const monthNamesShort = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+    if (trades.length === 0) {
+      trades = [{
+        id: '1', date: '2026-10-12T14:20', pair: 'XAU/USD', direction: 'BUY', setup: 'Order Block (OB) + FVG',
+        entry: 4010.00, sl: 4000.00, tp: 4035.00, lotRisk: '0.58 Lot ($58)', result: 'Win', currency: 'USD',
+        pnl: 145.00, rr: '1:2.50', chartUrl: '', emotions: ['สงบ/นิ่งตามกฎ'], preNote: 'Demand OB M15', postNote: 'ตามแผน'
+      }];
+      saveToStorage();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('viewCurrencyMode').value = currencyViewMode;
+      initTradingViewWidget('60');
+      initYearSelector();
+      syncDateSelectors();
+      renderDashboard();
+      initMultiTFAgent();
+    });
+
+    // ==========================================
+    // SMART RISK & FIXED LOT SIZE CALCULATOR
+    // ==========================================
+    function calcSmartLotSize() {
+      const balance = parseFloat(document.getElementById('calcBalance').value) || 0;
+      const riskPct = parseFloat(document.getElementById('calcRiskPercent').value) || 0;
+      const entry   = parseFloat(document.getElementById('tradeEntry').value);
+      const sl      = parseFloat(document.getElementById('tradeSL').value);
+      const direction = document.getElementById('tradeDirection').value;
+      const curr    = document.getElementById('tradeCurrency').value;
+
+      localStorage.setItem('smc_user_balance', balance);
+      localStorage.setItem('smc_user_risk_pct', riskPct);
+
+      const riskMoney = balance * (riskPct / 100);
+      document.getElementById('calcRiskMoney').value = `$${riskMoney.toFixed(2)}`;
+
+      const badge = document.getElementById('riskLevelBadge');
+      if (riskPct <= 2) {
+        badge.innerText = `ความเสี่ยงต่ำ (${riskPct}%) 🟢`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+      } else if (riskPct <= 5) {
+        badge.innerText = `ความเสี่ยงปานกลาง (${riskPct}%) 🟡`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-yellow-950 text-yellow-400 border border-yellow-800';
+      } else {
+        badge.innerText = `ความเสี่ยงสูง (${riskPct}%) 🔴`;
+        badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-950 text-red-400 border border-red-800 animate-pulse';
+      }
+
+      if (!isNaN(entry) && !isNaN(sl) && entry !== sl) {
+        const slDiff = Math.abs(entry - sl); // ระยะห่างราคา (เช่น $3.94)
+        const pips = slDiff * 10;
+        document.getElementById('calcSLPoints').value = `ระยะ SL: ${pips.toFixed(1)} Pips ($${slDiff.toFixed(2)})`;
+
+        // สูตรคำนวณ Lot Standard ทองคำ (XAUUSD):
+        // 1 Standard Lot (100 oz) ราคาขยับ 1 ดอลลาร์ = กำไร/ขาดทุน $100
+        // ดังนั้น 1 Standard Lot ราคาขยับ 1 จุด (0.1$) = ขาดทุน $10
+        // หรือพูดง่ายๆ: ขาดทุนต่อ 1 Standard Lot ต่อ 1 ดอลลาร์ระยะ SL = $100
+        let lot = riskMoney / (slDiff * 100);
+
+        if (curr === 'USDc') {
+          // พอร์ต Cent: เงินในพอร์ตเป็น Cent, 1 Lot Cent = $1 ต่อ 1 ดอลลาร์
+          lot = (riskMoney / 100) / (slDiff * 1.0); 
+        }
+
+        const formattedLot = Math.max(0.01, lot).toFixed(2);
+        document.getElementById('calcRecommendedLot').value = `${formattedLot} Lot`;
+        document.getElementById('tradeLotRisk').value = `${formattedLot} Lot ($${riskMoney.toFixed(0)})`;
+
+        // คำนวณ TP จาก R:R Dropdown
+        calcTPFromManual();
+      } else {
+        document.getElementById('calcSLPoints').value = 'ระยะ SL: -';
+        document.getElementById('calcRecommendedLot').value = '-';
+      }
+    }
+
+    function onSelectRRChange() {
+      const val = document.getElementById('selectRR').value;
+      if (val !== 'custom') {
+        calcSmartLotSize();
+      }
+    }
+
+    function calcTPFromManual() {
+      const entry = parseFloat(document.getElementById('tradeEntry').value);
+      const sl = parseFloat(document.getElementById('tradeSL').value);
+      const direction = document.getElementById('tradeDirection').value;
+      const rrSelectVal = document.getElementById('selectRR').value;
+
+      if (isNaN(entry) || isNaN(sl) || entry === sl) return;
+
+      const slDiff = Math.abs(entry - sl);
+      let targetRR = 2.0;
+      if (rrSelectVal !== 'custom') {
+        targetRR = parseFloat(rrSelectVal);
+      }
+
+      const rewardDist = slDiff * targetRR;
+      let tp = direction === 'BUY' ? entry + rewardDist : entry - rewardDist;
+
+      document.getElementById('tradeTP').value = tp.toFixed(2);
+      document.getElementById('tradeRR').value = `1:${targetRR.toFixed(1)}`;
+      document.getElementById('calcRewardPips').innerText = `เป้าหมายกำไร: ${(rewardDist * 10).toFixed(1)} Pips ($${(rewardDist * 100 * parseFloat(document.getElementById('calcRecommendedLot').value || 0.1)).toFixed(0)})`;
+    }
+
+    // ==========================================
+    // TRADINGVIEW WIDGET
+    // ==========================================
+    function initTradingViewWidget(interval) {
+      document.getElementById('tv_chart_container').innerHTML = '';
+      if (typeof TradingView !== 'undefined') {
+        new TradingView.widget({
+          "autosize": true, "symbol": "OANDA:XAUUSD", "interval": interval,
+          "timezone": "Asia/Bangkok", "theme": "dark", "style": "1",
+          "locale": "th_TH", "toolbar_bg": "#11151c", "enable_publishing": false,
+          "hide_side_toolbar": false, "allow_symbol_change": true, "container_id": "tv_chart_container"
+        });
+      }
+    }
+
+    // ==========================================
+    // SMC MULTI-TF SCANNER AGENT
+    // ==========================================
+    const TF_CONFIG = {
+      '15m': { tvInterval: '15', binanceInterval: '15m', slBuffer: 2.5, tpMultiplier: 2.0 },
+      '1h':  { tvInterval: '60', binanceInterval: '1h',  slBuffer: 5.0, tpMultiplier: 2.0 },
+      '4h':  { tvInterval: '240', binanceInterval: '4h', slBuffer: 10.0, tpMultiplier: 2.0 },
+      '1d':  { tvInterval: 'D',  binanceInterval: '1d',  slBuffer: 20.0, tpMultiplier: 2.0 }
+    };
+
+    function switchScannerTF(tf) {
+      activeScannerTF = tf;
+      ['15m', '1h', '4h', '1d'].forEach(item => {
+        document.getElementById(`tfBtn_${item}`).className = (item === tf) 
+          ? 'px-2.5 py-1 rounded-md bg-yellow-500 text-black font-semibold transition'
+          : 'px-2.5 py-1 rounded-md text-gray-400 hover:text-white transition font-semibold';
+      });
+      document.getElementById('scanBtnLabel').innerText = `สแกน ${tf.toUpperCase()} ทันที`;
+      document.getElementById('feedTitleTF').innerText = `${tf.toUpperCase()} SETUP SCANNER FEED`;
+      document.getElementById('labelPrevHigh').innerText = `Prev ${tf.toUpperCase()} High (BSL)`;
+      document.getElementById('labelPrevLow').innerText = `Prev ${tf.toUpperCase()} Low (SSL)`;
+      initTradingViewWidget(TF_CONFIG[tf].tvInterval);
+      runActiveTFScan(false);
+    }
+
+    function initMultiTFAgent() {
+      updateNotifButtonState();
+      renderAgentFeed();
+      runActiveTFScan(false);
+      setInterval(() => fetchTFCandles(activeScannerTF), 25000);
+    }
+
+    async function fetchTFCandles(tf) {
+      try {
+        const config = TF_CONFIG[tf];
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${config.binanceInterval}&limit=20`);
+        const klines = await res.json();
+        if (!Array.isArray(klines) || klines.length < 3) return null;
+
+        const currCandle = klines[klines.length - 1];
+        const prevCandle = klines[klines.length - 2];
+        const currPrice = parseFloat(currCandle[4]);
+        const prevHigh = parseFloat(prevCandle[2]);
+        const prevLow = parseFloat(prevCandle[3]);
+
+        document.getElementById('headerLivePrice').innerText = `$${currPrice.toFixed(2)}`;
+        document.getElementById('agentCurrPrice').innerText = `$${currPrice.toFixed(2)}`;
+        document.getElementById('agentPrevHigh').innerText = `$${prevHigh.toFixed(2)}`;
+        document.getElementById('agentPrevLow').innerText = `$${prevLow.toFixed(2)}`;
+        document.getElementById('agentLastUpdate').innerText = `อัปเดต: ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`;
+
+        return { currPrice, prevHigh, prevLow };
+      } catch (err) { return null; }
+    }
+
+    async function runActiveTFScan(notifyUser = false) {
+      const tf = activeScannerTF;
+      const config = TF_CONFIG[tf];
+      const data = await fetchTFCandles(tf);
+      if (!data) return;
+
+      const { currPrice, prevHigh, prevLow } = data;
+      const now = new Date();
+      const timeLabel = `${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`;
+
+      let direction = currPrice > prevLow ? 'BUY' : 'SELL';
+      let entry = currPrice;
+      let sl = direction === 'BUY' ? prevLow - config.slBuffer : prevHigh + config.slBuffer;
+      let tp = direction === 'BUY' ? entry + (Math.abs(entry - sl) * 2.0) : entry - (Math.abs(entry - sl) * 2.0);
+      let setupType = 'SMC Liquidity Sweep + BOS';
+      let note = `[${tf.toUpperCase()} SMC Agent] แนะนำดัก ${direction} ตามโครงสร้างราคาปัจจุบัน`;
+
+      const newAlert = { id: Date.now().toString(), tf: tf.toUpperCase(), time: timeLabel, price: currPrice.toFixed(2), direction, setup: setupType, entry, sl, tp, note };
+
+      if (notifyUser || agentAlerts.length === 0) {
+        agentAlerts.unshift(newAlert);
+        if (agentAlerts.length > 15) agentAlerts.pop();
+        localStorage.setItem('smc_agent_alerts', JSON.stringify(agentAlerts));
+        renderAgentFeed();
+      }
+    }
+
+    function renderAgentFeed() {
+      const container = document.getElementById('agentNotificationFeed');
+      if (agentAlerts.length === 0) {
+        container.innerHTML = `<div class="text-center text-gray-500 text-xs py-12">ยังไม่มีประวัติสแกน</div>`;
+        return;
+      }
+      container.innerHTML = agentAlerts.map(a => `
+        <div class="bg-gray-950/90 border border-gray-800 hover:border-yellow-500/40 rounded-lg p-3 transition text-xs">
+          <div class="flex justify-between items-center mb-1">
+            <div class="flex items-center gap-1.5">
+              <span class="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-bold text-[10px]">${a.tf}</span>
+              <span class="font-bold text-gray-300">${a.time}</span>
+              <span class="px-2 py-0.5 rounded border text-[10px] font-bold ${a.direction === 'BUY' ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' : 'bg-red-500/20 text-red-400 border-red-500/40'}">${a.direction}</span>
+            </div>
+            <button onclick="applyAgentSetupToModal('${a.id}')" class="bg-yellow-500/20 hover:bg-yellow-500 hover:text-black text-yellow-400 border border-yellow-500/40 px-2 py-0.5 rounded text-[11px] font-semibold transition">+ ใช้แผนนี้</button>
+          </div>
+          <p class="text-gray-300 text-[11px] mb-1.5">${a.note}</p>
+          <div class="flex justify-between text-[11px] font-mono bg-gray-900 px-2.5 py-1 rounded border border-gray-800">
+            <span class="text-gray-300">Entry: <b class="text-white">${a.entry}</b></span>
+            <span class="text-red-400">SL: <b>${a.sl}</b></span>
+            <span class="text-emerald-400">TP: <b>${a.tp}</b></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function applyAgentSetupToModal(alertId) {
+      const a = agentAlerts.find(item => item.id === alertId);
+      if (!a) return;
+      openTradeModal();
+      document.getElementById('tradeDirection').value = a.direction;
+      document.getElementById('tradeSetup').value = a.setup;
+      document.getElementById('tradeEntry').value = a.entry;
+      document.getElementById('tradeSL').value = a.sl;
+      document.getElementById('selectRR').value = '2.0';
+      document.getElementById('tradePreNote').value = a.note;
+      calcSmartLotSize();
+    }
+
+    function clearAgentFeed() {
+      agentAlerts = [];
+      localStorage.setItem('smc_agent_alerts', JSON.stringify(agentAlerts));
+      renderAgentFeed();
+    }
+
+    function toggleBrowserNotification() {
+      if (!("Notification" in window)) return;
+      Notification.requestPermission().then(p => { if (p === "granted") updateNotifButtonState(); });
+    }
+
+    function updateNotifButtonState() {
+      const txt = document.getElementById('notifStatusText');
+      if ("Notification" in window && Notification.permission === "granted") {
+        txt.innerText = "เปิดแล้ว"; txt.className = "text-emerald-400 font-semibold";
+      }
+    }
+
+    // ==========================================
+    // JOURNAL & DASHBOARD LOGIC
+    // ==========================================
+    function saveToStorage() { localStorage.setItem('smc_trades', JSON.stringify(trades)); }
+
+    function initYearSelector() {
+      const yearSelect = document.getElementById('filterYear');
+      const currentYear = new Date().getFullYear();
+      const years = new Set([currentYear - 1, currentYear, currentYear + 1]);
+      trades.forEach(t => { if (t.date) years.add(parseInt(t.date.slice(0, 4))); });
+      yearSelect.innerHTML = Array.from(years).sort((a, b) => a - b).y = y => `<option value="${y}" class="bg-gray-900">พ.ศ. ${y + 543} (${y})</option>`;
+      yearSelect.innerHTML = Array.from(years).sort((a, b) => a - b).map(y => `<option value="${y}" class="bg-gray-900">พ.ศ. ${y + 543} (${y})</option>`).join('');
+    }
+
+    function syncDateSelectors() {
+      document.getElementById('filterMonth').value = currentDate.getMonth();
+      document.getElementById('filterYear').value = currentDate.getFullYear();
+    }
+
+    function onFilterDateChange() {
+      currentDate = new Date(parseInt(document.getElementById('filterYear').value), parseInt(document.getElementById('filterMonth').value), 1);
+      renderCalendar(); renderPnlColumnChart();
+      if (document.getElementById('tableFilterByMonth').checked) renderTable();
+    }
+
+    function setPnlChartMode(mode) {
+      pnlChartMode = mode;
+      document.getElementById('btnViewDaily').className = mode === 'DAILY' ? 'px-3 py-1 rounded-md bg-yellow-500 text-black font-semibold' : 'px-3 py-1 rounded-md text-gray-400';
+      document.getElementById('btnViewMonthly').className = mode === 'MONTHLY' ? 'px-3 py-1 rounded-md bg-yellow-500 text-black font-semibold' : 'px-3 py-1 rounded-md text-gray-400';
+      document.getElementById('filterMonth').disabled = (mode === 'MONTHLY');
+      renderPnlColumnChart();
+    }
+
+    function changeCurrencyMode(mode) {
+      currencyViewMode = mode; localStorage.setItem('smc_currency_view', mode); renderDashboard();
+    }
+
+    function getFilteredTrades() {
+      if (currencyViewMode === 'ONLY_USD') return trades.filter(t => (t.currency || 'USD') === 'USD');
+      if (currencyViewMode === 'ONLY_USDC') return trades.filter(t => t.currency === 'USDc');
+      return trades;
+    }
+
+    function getNormalizedPnl(trade) {
+      const rawPnl = parseFloat(trade.pnl || 0);
+      return (currencyViewMode === 'ALL_IN_USD' && trade.currency === 'USDc') ? rawPnl / 100 : rawPnl;
+    }
+
+    function formatPnlBadge(amount, currency) {
+      const sign = amount >= 0 ? '+' : '';
+      return currency === 'USDc' ? `${sign}${amount.toFixed(2)} USDc` : `${sign}$${amount.toFixed(2)}`;
+    }
+
+    function updateCurrencyPlaceholder() {
+      const curr = document.getElementById('tradeCurrency').value;
+      document.getElementById('pnlLabel').innerText = curr === 'USDc' ? 'กำไร/ขาดทุนสุทธิ (USDc)' : 'กำไร/ขาดทุนสุทธิ ($ USD)';
+      document.getElementById('calcBalUnit').innerText = curr === 'USDc' ? '¢' : '$';
+    }
+
+    function renderDashboard() {
+      initYearSelector(); syncDateSelectors(); renderKPIs();
+      renderPnlColumnChart(); renderCalendar(); renderTable(); renderSetupChart();
+    }
+
+    function getDynamicBarColors(values) {
+      const maxP = Math.max(...values.filter(v => v > 0), 0);
+      const maxL = Math.max(...values.filter(v => v < 0).map(v => Math.abs(v)), 0);
+      return {
+        bgColors: values.map(v => v > 0 ? `rgba(16, 185, 129, ${(0.4 + (maxP ? v/maxP*0.6 : 0)).toFixed(2)})` : v < 0 ? `rgba(239, 68, 68, ${(0.4 + (maxL ? Math.abs(v)/maxL*0.6 : 0)).toFixed(2)})` : 'rgba(55, 65, 81, 0.25)'),
+        borderColors: values.map(v => v > 0 ? '#34d399' : v < 0 ? '#f87171' : '#4b5563')
+      };
+    }
+
+    function renderPnlColumnChart() {
+      const ctx = document.getElementById('pnlColumnChart').getContext('2d');
+      const activeTrades = getFilteredTrades();
+      const year = currentDate.getFullYear(), month = currentDate.getMonth();
+      let labels = [], values = [];
+
+      if (pnlChartMode === 'DAILY') {
+        const days = new Date(year, month + 1, 0).getDate();
+        document.getElementById('pnlChartSubtitle').innerText = `รายวัน เดือน ${monthNamesFull[month]} ${year + 543}`;
+        for (let d = 1; d <= days; d++) {
+          labels.push(`${d}`);
+          const prefix = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          values.push(parseFloat(activeTrades.filter(t => t.date?.startsWith(prefix)).reduce((s, t) => s + getNormalizedPnl(t), 0).toFixed(2)));
+        }
+      } else {
+        document.getElementById('pnlChartSubtitle').innerText = `รายเดือน ปี พ.ศ. ${year + 543}`;
+        for (let m = 0; m < 12; m++) {
+          labels.push(monthNamesShort[m]);
+          const prefix = `${year}-${String(m + 1).padStart(2, '0')}`;
+          values.push(parseFloat(activeTrades.filter(t => t.date?.startsWith(prefix)).reduce((s, t) => s + getNormalizedPnl(t), 0).toFixed(2)));
+        }
+      }
+
+      const net = values.reduce((a, b) => a + b, 0);
+      document.getElementById('chartPeriodNet').innerText = `${net >= 0 ? '+' : ''}$${net.toFixed(2)}`;
+      document.getElementById('chartPeriodBest').innerText = `+$${Math.max(...values, 0).toFixed(2)}`;
+      document.getElementById('chartPeriodWorst').innerText = `$${Math.min(...values, 0).toFixed(2)}`;
+
+      if (pnlColumnChartInstance) pnlColumnChartInstance.destroy();
+      const { bgColors, borderColors } = getDynamicBarColors(values);
+
+      pnlColumnChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: bgColors, borderColor: borderColors, borderWidth: 1, borderRadius: 4 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { family: 'Kanit' } } }, y: { ticks: { color: '#9ca3af', font: { family: 'Kanit' } } } }
+        }
+      });
+    }
+
+    function renderKPIs() {
+      const active = getFilteredTrades();
+      const total = active.length;
+      if (total === 0) {
+        document.getElementById('kpiNetPL').innerText = '$0.00';
+        document.getElementById('kpiWinRate').innerText = '0.0%';
+        document.getElementById('kpiTotalTrades').innerText = '0 ไม้';
+        document.getElementById('kpiPF').innerText = '0.00';
+        document.getElementById('kpiTopEmotion').innerText = '-';
+        return;
+      }
+      const wins = active.filter(t => t.result === 'Win').length;
+      const net = active.reduce((s, t) => s + getNormalizedPnl(t), 0);
+      const profit = active.filter(t => getNormalizedPnl(t) > 0).reduce((s, t) => s + getNormalizedPnl(t), 0);
+      const loss = Math.abs(active.filter(t => getNormalizedPnl(t) < 0).reduce((s, t) => s + getNormalizedPnl(t), 0));
+      const pf = loss === 0 ? (profit > 0 ? 'MAX' : '0.00') : (profit / loss).toFixed(2);
+
+      document.getElementById('kpiNetPL').innerText = `${net >= 0 ? '+' : ''}$${net.toFixed(2)}`;
+      document.getElementById('kpiWinRate').innerText = `${((wins/total)*100).toFixed(1)}%`;
+      document.getElementById('kpiTotalTrades').innerText = `${total} ไม้`;
+      document.getElementById('kpiPF').innerText = pf;
+    }
+
+    function renderCalendar() {
+      const year = currentDate.getFullYear(), month = currentDate.getMonth();
+      const active = getFilteredTrades();
+      document.getElementById('calendarMonthYear').innerText = `${monthNamesFull[month]} ${year + 543}`;
+      const firstDay = new Date(year, month, 1).getDay();
+      const days = new Date(year, month + 1, 0).getDate();
+      let grid = '';
+      for (let i = 0; i < firstDay; i++) grid += `<div class="h-20 bg-gray-900/30 rounded-lg opacity-35"></div>`;
+      for (let d = 1; d <= days; d++) {
+        const prefix = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const sum = active.filter(t => t.date?.startsWith(prefix)).reduce((s, t) => s + getNormalizedPnl(t), 0);
+        let cls = 'bg-gray-900/60 border-gray-800 text-gray-400';
+        if (sum > 0) cls = 'bg-emerald-950/50 border-emerald-700 text-emerald-400 font-bold';
+        else if (sum < 0) cls = 'bg-red-950/50 border-red-700 text-red-400 font-bold';
+        grid += `<div class="h-20 ${cls} border rounded-lg p-2 flex flex-col justify-between"><span>${d}</span><span class="text-right text-xs">${sum !== 0 ? (sum>0?'+':'')+sum.toFixed(1) : ''}</span></div>`;
+      }
+      document.getElementById('calendarGrid').innerHTML = grid;
+    }
+
+    function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderDashboard(); }
+    function resetToToday() { currentDate = new Date(); renderDashboard(); }
+
+    function renderTable() {
+      const tbody = document.getElementById('tradeLogTableBody');
+      let active = getFilteredTrades();
+      if (document.getElementById('tableFilterByMonth').checked) {
+        const prefix = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        active = active.filter(t => t.date?.startsWith(prefix));
+      }
+      if (active.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-gray-500 text-xs">ยังไม่มีบันทึก</td></tr>`; return; }
+      tbody.innerHTML = active.slice().reverse().map(t => `
+        <tr class="hover:bg-gray-800/30 text-xs">
+          <td class="p-3 text-gray-300">${t.date.replace('T', ' ')}</td>
+          <td class="p-3"><span class="font-bold text-white">${t.pair}</span> <span class="${t.direction==='BUY'?'text-blue-400':'text-red-400'}">${t.direction}</span></td>
+          <td class="p-3 text-gray-300">${t.setup}</td>
+          <td class="p-3 font-mono text-gray-400">${t.entry} / ${t.sl} / ${t.tp}</td>
+          <td class="p-3 text-yellow-400 font-semibold">${t.rr || '-'}</td>
+          <td class="p-3 text-gray-300 font-mono">${t.lotRisk || '-'}</td>
+          <td class="p-3"><span class="font-bold ${parseFloat(t.pnl)>=0?'text-emerald-400':'text-red-400'}">${formatPnlBadge(t.pnl, t.currency)}</span></td>
+          <td class="p-3 text-gray-300 truncate max-w-[120px]">${(t.emotions||[]).join(', ')}</td>
+          <td class="p-3 text-center space-x-2">
+            <button onclick="viewTrade('${t.id}')" class="text-blue-400"><i class="fa-solid fa-eye"></i></button>
+            <button onclick="editTrade('${t.id}')" class="text-yellow-400"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteTrade('${t.id}')" class="text-gray-500 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openTradeModal() {
+      document.getElementById('tradeForm').reset();
+      document.getElementById('editTradeId').value = '';
+      document.getElementById('tradeDate').value = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+      document.getElementById('calcBalance').value = savedBalance;
+      document.getElementById('calcRiskPercent').value = savedRiskPct;
+      updateCurrencyPlaceholder();
+      selectedEmotions = [];
+      document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('bg-yellow-500', 'text-black'));
+      document.getElementById('tradeModal').classList.remove('hidden');
+    }
+
+    function closeTradeModal() { document.getElementById('tradeModal').classList.add('hidden'); }
+
+    function editTrade(id) {
+      const t = trades.find(item => item.id === id); if (!t) return;
+      document.getElementById('editTradeId').value = t.id;
+      document.getElementById('tradeDate').value = t.date;
+      document.getElementById('tradePair').value = t.pair;
+      document.getElementById('tradeDirection').value = t.direction;
+      document.getElementById('tradeSetup').value = t.setup;
+      document.getElementById('tradeEntry').value = t.entry;
+      document.getElementById('tradeSL').value = t.sl;
+      document.getElementById('tradeTP').value = t.tp;
+      document.getElementById('tradeResult').value = t.result;
+      document.getElementById('tradeCurrency').value = t.currency || 'USD';
+      updateCurrencyPlaceholder();
+      document.getElementById('tradePNL').value = t.pnl;
+      document.getElementById('tradeRR').value = t.rr || '';
+      document.getElementById('tradeLotRisk').value = t.lotRisk || '';
+      calcSmartLotSize();
+      document.getElementById('tradeModal').classList.remove('hidden');
+    }
+
+    function viewTrade(id) {
+      const t = trades.find(item => item.id === id); if (!t) return;
+      document.getElementById('viewModalContent').innerHTML = `
+        <h3 class="text-lg font-bold text-white mb-2">${t.pair} (${t.direction})</h3>
+        <p class="text-xs text-gray-400 mb-4">Entry: ${t.entry} | SL: ${t.sl} | TP: ${t.tp} | PnL: ${formatPnlBadge(t.pnl, t.currency)}</p>
+        <div class="bg-gray-900 p-3 rounded text-xs space-y-2">
+          <p><b>Setup:</b> ${t.setup}</p>
+          <p><b>Lot/Risk:</b> ${t.lotRisk}</p>
+          <p><b>Pre-Note:</b> ${t.preNote || '-'}</p>
+          <p><b>Post-Note:</b> ${t.postNote || '-'}</p>
+        </div>
+      `;
+      document.getElementById('viewModal').classList.remove('hidden');
+    }
+
+    function closeViewModal() { document.getElementById('viewModal').classList.add('hidden'); }
+
+    function toggleEmotion(btn, emotion) {
+      if (selectedEmotions.includes(emotion)) {
+        selectedEmotions = selectedEmotions.filter(e => e !== emotion);
+        btn.classList.remove('bg-yellow-500', 'text-black');
+      } else {
+        selectedEmotions.push(emotion);
+        btn.classList.add('bg-yellow-500', 'text-black');
+      }
+    }
+
+    function handleSaveTrade(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editTradeId').value;
+      const tradeData = {
+        id: editId || Date.now().toString(),
+        date: document.getElementById('tradeDate').value,
+        pair: document.getElementById('tradePair').value,
+        direction: document.getElementById('tradeDirection').value,
+        setup: document.getElementById('tradeSetup').value,
+        entry: parseFloat(document.getElementById('tradeEntry').value),
+        sl: parseFloat(document.getElementById('tradeSL').value),
+        tp: parseFloat(document.getElementById('tradeTP').value),
+        lotRisk: document.getElementById('tradeLotRisk').value,
+        result: document.getElementById('tradeResult').value,
+        currency: document.getElementById('tradeCurrency').value,
+        pnl: parseFloat(document.getElementById('tradePNL').value),
+        rr: document.getElementById('tradeRR').value,
+        emotions: [...selectedEmotions],
+        preNote: document.getElementById('tradePreNote').value,
+        postNote: document.getElementById('tradePostNote').value
+      };
+      if (editId) { const idx = trades.findIndex(t => t.id === editId); if (idx !== -1) trades[idx] = tradeData; }
+      else { trades.push(tradeData); }
+      saveToStorage(); renderDashboard(); closeTradeModal();
+    }
+
+    function deleteTrade(id) {
+      if (confirm('ลบรายการนี้ใช่หรือไม่?')) { trades = trades.filter(t => t.id !== id); saveToStorage(); renderDashboard(); }
+    }
+
+    function renderSetupChart() {
+      const ctx = document.getElementById('setupChart').getContext('2d');
+      const counts = {};
+      getFilteredTrades().forEach(t => counts[t.setup] = (counts[t.setup] || 0) + 1);
+      if (setupChartInstance) setupChartInstance.destroy();
+      const labels = Object.keys(counts);
+      setupChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels.length ? labels : ['ยังไม่มีข้อมูล'],
+          datasets: [{ data: labels.length ? Object.values(counts) : [1], backgroundColor: ['#d4af37', '#10b981', '#3b82f6', '#a855f7', '#f43f5e'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', font: { family: 'Kanit' } } } } }
+      });
+    }
+
+    function exportCSV() {
+      if (trades.length === 0) return alert('ไม่มีข้อมูล');
+      let csv = '\uFEFFDate,Pair,Direction,Setup,Entry,SL,TP,Lot/Risk,Result,Currency,PNL,RR\n';
+      trades.forEach(t => { csv += `"${t.date}","${t.pair}","${t.direction}","${t.setup}",${t.entry},${t.sl},${t.tp},"${t.lotRisk}","${t.result}","${t.currency}",${t.pnl},"${t.rr}"\n`; });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'SMC_Journal.csv'; link.click();
+    }
+  </script>
+</body>
+</html>
