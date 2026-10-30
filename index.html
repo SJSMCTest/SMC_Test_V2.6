@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMC Trading Journal & Smart Risk Calculator V2.6</title>
+  <title>SMC Trading Journal & Smart Risk Calculator V2.7</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,9 +55,9 @@
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
-            SMC JOURNAL & RISK AGENT <span class="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">V2.6 PRO</span>
+            SMC JOURNAL & RISK AGENT <span class="text-[10px] bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">V2.7 PRO SCAN</span>
           </h1>
-          <p class="text-xs text-gray-400">Smart Position Sizing, %Risk Management & Multi-TF Scanner</p>
+          <p class="text-xs text-gray-400">Smart Position Sizing, Specific SMC Analysis & Multi-TF Engine</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@
             <h2 class="text-base font-bold text-white flex items-center gap-2">
               <i class="fa-solid fa-crosshairs gold-accent"></i> SMC MULTI-TF MARKET SCANNER (XAU/USD)
             </h2>
-            <p class="text-xs text-gray-400">สแกนโครงสร้างและคำนวณแผนเทรดอัตโนมัติ (1D / 4H / 1H / 15M)</p>
+            <p class="text-xs text-gray-400">สแกนเจาะจงโครงสร้างจริง (FVG, BOS, Liquidity Sweep) แยกตาม Timeframe</p>
           </div>
         </div>
 
@@ -121,8 +121,8 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div class="lg:col-span-7 bg-[#0b0e14] rounded-xl overflow-hidden border border-gray-800 h-[430px]" id="tv_chart_container"></div>
-        <div class="lg:col-span-5 flex flex-col justify-between bg-gray-900/60 rounded-xl p-4 border border-gray-800 h-[430px]">
+        <div class="lg:col-span-7 bg-[#0b0e14] rounded-xl overflow-hidden border border-gray-800 h-[440px]" id="tv_chart_container"></div>
+        <div class="lg:col-span-5 flex flex-col justify-between bg-gray-900/60 rounded-xl p-4 border border-gray-800 h-[440px]">
           <div>
             <div class="flex justify-between items-center mb-3">
               <span class="text-xs font-bold uppercase tracking-wider text-yellow-400 flex items-center">
@@ -132,7 +132,7 @@
             </div>
             <div class="grid grid-cols-3 gap-2 mb-3 bg-gray-950 p-2.5 rounded-lg border border-gray-800 text-center text-xs">
               <div>
-                <span id="labelPrevHigh" class="text-gray-500 block text-[10px]">Prev High (BSL)</span>
+                <span id="labelPrevHigh" class="text-gray-500 block text-[10px]">Swing High (BSL)</span>
                 <span id="agentPrevHigh" class="font-mono font-bold text-emerald-400">-</span>
               </div>
               <div>
@@ -140,14 +140,14 @@
                 <span id="agentCurrPrice" class="font-mono font-bold text-yellow-400">-</span>
               </div>
               <div>
-                <span id="labelPrevLow" class="text-gray-500 block text-[10px]">Prev Low (SSL)</span>
+                <span id="labelPrevLow" class="text-gray-500 block text-[10px]">Swing Low (SSL)</span>
                 <span id="agentPrevLow" class="font-mono font-bold text-red-400">-</span>
               </div>
             </div>
           </div>
           <div id="agentNotificationFeed" class="space-y-2.5 overflow-y-auto custom-scrollbar pr-1 flex-1"></div>
           <div class="pt-3 mt-2 border-t border-gray-800 flex justify-between items-center text-[11px] text-gray-400">
-            <span><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> กด "+ ใช้แผนนี้" ระบบจะคำนวณ Lot ให้อัตโนมัติ</span>
+            <span><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> กด "+ ใช้แผนนี้" ระบบจะนำพิกัดไปคิด Lot ให้ทันที</span>
             <button onclick="clearAgentFeed()" class="hover:text-white transition">ล้างประวัติ</button>
           </div>
         </div>
@@ -319,7 +319,7 @@
         <div class="bg-gradient-to-r from-yellow-950/30 via-gray-900 to-gray-900 p-4 rounded-xl border border-yellow-500/40">
           <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold text-yellow-400 flex items-center">
-              <i class="fa-solid fa-shield-halved mr-1.5"></i> คำนวณ Lot Size ตาม %Risk ของพอร์ต (XAUUSD Standard: 1 Lot = $100 ต่อ 1 จุด)
+              <i class="fa-solid fa-shield-halved mr-1.5"></i> คำนวณ Lot Size ตาม %Risk ของพอร์ต (XAUUSD: 1 Lot = $100 ต่อ $1)
             </span>
             <span id="riskLevelBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-gray-800 text-gray-400 border border-gray-700">สถานะ: กำหนดค่า</span>
           </div>
@@ -328,7 +328,7 @@
             <div>
               <label class="block text-gray-400 mb-1">ขนาดพอร์ต (Balance)</label>
               <div class="relative">
-                <input type="number" step="any" id="calcBalance" oninput="calcSmartLotSize()" value="1000" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 text-white font-mono">
+                <input type="number" step="any" id="calcBalance" oninput="calcSmartLotSize()" value="2900" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 text-white font-mono">
                 <span id="calcBalUnit" class="absolute right-2.5 top-2 text-[11px] text-gray-500">$</span>
               </div>
             </div>
@@ -410,11 +410,12 @@
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1">รูปแบบ Setup SMC</label>
             <select id="tradeSetup" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-xs text-white">
-              <option value="SMC Liquidity Sweep + BOS">SMC Sweep + BOS</option>
-              <option value="Order Block (OB) + FVG">OB + FVG Mitigation</option>
-              <option value="CHoCH Reversal">CHoCH LTF Reversal</option>
-              <option value="Premium/Discount Retest">Premium / Discount Retest</option>
-              <option value="Asian Range Breakout">Asian Range Breakout</option>
+              <option value="BSL Liquidity Sweep + Rejection">BSL Sweep + Rejection</option>
+              <option value="SSL Liquidity Sweep + Rejection">SSL Sweep + Rejection</option>
+              <option value="Bearish BOS + FVG Mitigation">Bearish BOS + FVG Mitigation</option>
+              <option value="Bullish BOS + FVG Mitigation">Bullish BOS + FVG Mitigation</option>
+              <option value="Premium Zone Supply Test">Premium Zone Supply Test</option>
+              <option value="Discount Zone Demand Test">Discount Zone Demand Test</option>
             </select>
           </div>
           <div>
@@ -483,9 +484,9 @@
 
     if (trades.length === 0) {
       trades = [{
-        id: '1', date: '2026-10-12T14:20', pair: 'XAU/USD', direction: 'BUY', setup: 'Order Block (OB) + FVG',
-        entry: 4010.00, sl: 4000.00, tp: 4035.00, lotRisk: '0.58 Lot ($58)', result: 'Win', currency: 'USD',
-        pnl: 145.00, rr: '1:2.50', chartUrl: '', emotions: ['สงบ/นิ่งตามกฎ'], preNote: 'Demand OB M15', postNote: 'ตามแผน'
+        id: '1', date: '2026-10-12T14:20', pair: 'XAU/USD', direction: 'BUY', setup: 'Bullish BOS + FVG Mitigation',
+        entry: 4010.00, sl: 4000.00, tp: 4030.00, lotRisk: '0.58 Lot ($58)', result: 'Win', currency: 'USD',
+        pnl: 116.00, rr: '1:2.0', chartUrl: '', emotions: ['สงบ/นิ่งตามกฎ'], preNote: 'Demand FVG M15', postNote: 'ตามแผน'
       }];
       saveToStorage();
     }
@@ -529,29 +530,23 @@
       }
 
       if (!isNaN(entry) && !isNaN(sl) && entry !== sl) {
-        const slDiff = Math.abs(entry - sl); // ระยะห่างราคา (เช่น $3.94)
+        const slDiff = Math.abs(entry - sl);
         const pips = slDiff * 10;
-        document.getElementById('calcSLPoints').value = `ระยะ SL: ${pips.toFixed(1)} Pips ($${slDiff.toFixed(2)})`;
+        document.getElementById('calcSLPoints').innerText = `ระยะ SL: ${pips.toFixed(1)} Pips ($${slDiff.toFixed(2)})`;
 
-        // สูตรคำนวณ Lot Standard ทองคำ (XAUUSD):
-        // 1 Standard Lot (100 oz) ราคาขยับ 1 ดอลลาร์ = กำไร/ขาดทุน $100
-        // ดังนั้น 1 Standard Lot ราคาขยับ 1 จุด (0.1$) = ขาดทุน $10
-        // หรือพูดง่ายๆ: ขาดทุนต่อ 1 Standard Lot ต่อ 1 ดอลลาร์ระยะ SL = $100
+        // Gold: 1 Lot = $100 ต่อ $1 move
         let lot = riskMoney / (slDiff * 100);
-
         if (curr === 'USDc') {
-          // พอร์ต Cent: เงินในพอร์ตเป็น Cent, 1 Lot Cent = $1 ต่อ 1 ดอลลาร์
-          lot = (riskMoney / 100) / (slDiff * 1.0); 
+          lot = (riskMoney / 100) / (slDiff * 1.0);
         }
 
         const formattedLot = Math.max(0.01, lot).toFixed(2);
         document.getElementById('calcRecommendedLot').value = `${formattedLot} Lot`;
         document.getElementById('tradeLotRisk').value = `${formattedLot} Lot ($${riskMoney.toFixed(0)})`;
 
-        // คำนวณ TP จาก R:R Dropdown
         calcTPFromManual();
       } else {
-        document.getElementById('calcSLPoints').value = 'ระยะ SL: -';
+        document.getElementById('calcSLPoints').innerText = 'ระยะ SL: -';
         document.getElementById('calcRecommendedLot').value = '-';
       }
     }
@@ -582,7 +577,8 @@
 
       document.getElementById('tradeTP').value = tp.toFixed(2);
       document.getElementById('tradeRR').value = `1:${targetRR.toFixed(1)}`;
-      document.getElementById('calcRewardPips').innerText = `เป้าหมายกำไร: ${(rewardDist * 10).toFixed(1)} Pips ($${(rewardDist * 100 * parseFloat(document.getElementById('calcRecommendedLot').value || 0.1)).toFixed(0)})`;
+      const estReward = (rewardDist * 100 * parseFloat(document.getElementById('calcRecommendedLot').value || 0.1)).toFixed(0);
+      document.getElementById('calcRewardPips').innerText = `เป้าหมายกำไร: ${(rewardDist * 10).toFixed(1)} Pips (+$${estReward})`;
     }
 
     // ==========================================
@@ -601,7 +597,7 @@
     }
 
     // ==========================================
-    // SMC MULTI-TF SCANNER AGENT
+    // SMC MULTI-TF SPECIFIC SCANNER AGENT (V2.7)
     // ==========================================
     const TF_CONFIG = {
       '15m': { tvInterval: '15', binanceInterval: '15m', slBuffer: 2.5, tpMultiplier: 2.0 },
@@ -619,8 +615,8 @@
       });
       document.getElementById('scanBtnLabel').innerText = `สแกน ${tf.toUpperCase()} ทันที`;
       document.getElementById('feedTitleTF').innerText = `${tf.toUpperCase()} SETUP SCANNER FEED`;
-      document.getElementById('labelPrevHigh').innerText = `Prev ${tf.toUpperCase()} High (BSL)`;
-      document.getElementById('labelPrevLow').innerText = `Prev ${tf.toUpperCase()} Low (SSL)`;
+      document.getElementById('labelPrevHigh').innerText = `Swing ${tf.toUpperCase()} High (BSL)`;
+      document.getElementById('labelPrevLow').innerText = `Swing ${tf.toUpperCase()} Low (SSL)`;
       initTradingViewWidget(TF_CONFIG[tf].tvInterval);
       runActiveTFScan(false);
     }
@@ -629,63 +625,164 @@
       updateNotifButtonState();
       renderAgentFeed();
       runActiveTFScan(false);
-      setInterval(() => fetchTFCandles(activeScannerTF), 25000);
+      setInterval(() => runActiveTFScan(false), 30000);
     }
 
     async function fetchTFCandles(tf) {
       try {
         const config = TF_CONFIG[tf];
-        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${config.binanceInterval}&limit=20`);
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=${config.binanceInterval}&limit=40`);
         const klines = await res.json();
-        if (!Array.isArray(klines) || klines.length < 3) return null;
+        if (!Array.isArray(klines) || klines.length < 15) return null;
 
-        const currCandle = klines[klines.length - 1];
-        const prevCandle = klines[klines.length - 2];
-        const currPrice = parseFloat(currCandle[4]);
-        const prevHigh = parseFloat(prevCandle[2]);
-        const prevLow = parseFloat(prevCandle[3]);
+        const candles = klines.map(k => ({
+          time: k[0],
+          open: parseFloat(k[1]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          close: parseFloat(k[4]),
+          volume: parseFloat(k[5])
+        }));
 
-        document.getElementById('headerLivePrice').innerText = `$${currPrice.toFixed(2)}`;
-        document.getElementById('agentCurrPrice').innerText = `$${currPrice.toFixed(2)}`;
-        document.getElementById('agentPrevHigh').innerText = `$${prevHigh.toFixed(2)}`;
-        document.getElementById('agentPrevLow').innerText = `$${prevLow.toFixed(2)}`;
+        const curr = candles[candles.length - 1];
+        document.getElementById('headerLivePrice').innerText = `$${curr.close.toFixed(2)}`;
+        document.getElementById('agentCurrPrice').innerText = `$${curr.close.toFixed(2)}`;
         document.getElementById('agentLastUpdate').innerText = `อัปเดต: ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`;
 
-        return { currPrice, prevHigh, prevLow };
-      } catch (err) { return null; }
+        return candles;
+      } catch (err) {
+        console.warn('TF fetch error:', err);
+        return null;
+      }
     }
 
     async function runActiveTFScan(notifyUser = false) {
       const tf = activeScannerTF;
       const config = TF_CONFIG[tf];
-      const data = await fetchTFCandles(tf);
-      if (!data) return;
+      const candles = await fetchTFCandles(tf);
+      if (!candles) return;
 
-      const { currPrice, prevHigh, prevLow } = data;
+      const n = candles.length;
+      const curr = candles[n - 1];
+      const c1 = candles[n - 2];
+      const c2 = candles[n - 3];
+
+      let swingHigh = -Infinity;
+      let swingLow = Infinity;
+      for (let i = n - 12; i < n - 2; i++) {
+        if (candles[i].high > swingHigh) swingHigh = candles[i].high;
+        if (candles[i].low < swingLow) swingLow = candles[i].low;
+      }
+
+      document.getElementById('agentPrevHigh').innerText = `$${swingHigh.toFixed(2)}`;
+      document.getElementById('agentPrevLow').innerText = `$${swingLow.toFixed(2)}`;
+
+      const currRange = curr.high - curr.low;
+      const isStrongBear = (curr.open - curr.close) > (currRange * 0.6) && currRange > (config.slBuffer * 0.7);
+      const isStrongBull = (curr.close - curr.open) > (currRange * 0.6) && currRange > (config.slBuffer * 0.7);
+
+      const hasBearishFVG = c2.low > curr.high;
+      const fvgBearTop = c2.low;
+      const fvgBearBottom = curr.high;
+
+      const hasBullishFVG = curr.low > c2.high;
+      const fvgBullTop = curr.low;
+      const fvgBullBottom = c2.high;
+
+      const isSweepBSL = (c1.high > swingHigh || curr.high > swingHigh) && (curr.close < swingHigh);
+      const isSweepSSL = (c1.low < swingLow || curr.low < swingLow) && (curr.close > swingLow);
+      const isBearishBOS = curr.close < swingLow;
+      const isBullishBOS = curr.close > swingHigh;
+
+      let direction = 'SELL';
+      let setupType = 'SMC Setup';
+      let signalNote = '';
+      let entry = curr.close;
+      let sl = curr.high + config.slBuffer;
+      let tp = curr.close - (config.slBuffer * 2);
+
+      if (isSweepBSL) {
+        direction = 'SELL';
+        setupType = 'BSL Liquidity Sweep + Rejection';
+        sl = parseFloat((Math.max(curr.high, c1.high) + (config.slBuffer * 0.5)).toFixed(2));
+        entry = parseFloat(curr.close.toFixed(2));
+        tp = parseFloat((entry - (Math.abs(sl - entry) * 2.0)).toFixed(2));
+        signalNote = `[${tf.toUpperCase()} BSL Sweep] ขึ้นกวาด Liquidity เหนือ High ($${swingHigh.toFixed(2)}) แล้วทิ้งไส้ปฏิเสธราคา ชี้แรงเทขายจากสถาบัน ดัก SELL`;
+      } else if (isSweepSSL) {
+        direction = 'BUY';
+        setupType = 'SSL Liquidity Sweep + Rejection';
+        sl = parseFloat((Math.min(curr.low, c1.low) - (config.slBuffer * 0.5)).toFixed(2));
+        entry = parseFloat(curr.close.toFixed(2));
+        tp = parseFloat((entry + (Math.abs(entry - sl) * 2.0)).toFixed(2));
+        signalNote = `[${tf.toUpperCase()} SSL Sweep] ทิ้งไส้กวาด Stop Loss ใต้ Low ($${swingLow.toFixed(2)}) แล้วดึงกลับยืนเหนือแนวรับ ดักจังหวะ BUY`;
+      } else if (isBearishBOS || (isStrongBear && curr.close < (swingLow + config.slBuffer))) {
+        direction = 'SELL';
+        setupType = hasBearishFVG ? 'Bearish BOS + FVG Mitigation' : 'Bearish Break of Structure (BOS)';
+        sl = parseFloat((hasBearishFVG ? fvgBearTop + (config.slBuffer * 0.5) : swingHigh).toFixed(2));
+        entry = hasBearishFVG ? parseFloat(((fvgBearTop + fvgBearBottom) / 2).toFixed(2)) : parseFloat(curr.close.toFixed(2));
+        tp = parseFloat((entry - (Math.abs(sl - entry) * 2.0)).toFixed(2));
+        signalNote = hasBearishFVG 
+          ? `[${tf.toUpperCase()} BOS + FVG] ทิ้งตัวแรงทำลาย Low ($${swingLow.toFixed(2)}) เกิด FVG แถว $${fvgBearBottom.toFixed(2)}-$${fvgBearTop.toFixed(2)} แนะนำดัก Sell Limit ที่ FVG`
+          : `[${tf.toUpperCase()} Bearish BOS] หลุดทำลาย Low โครงสร้าง ($${swingLow.toFixed(2)}) ชัดเจน โมเมนตัมเปลี่ยนเป็นขาลงต่อเนื่อง รอดักเด้ง SELL`;
+      } else if (isBullishBOS || (isStrongBull && curr.close > (swingHigh - config.slBuffer))) {
+        direction = 'BUY';
+        setupType = hasBullishFVG ? 'Bullish BOS + FVG Mitigation' : 'Bullish Break of Structure (BOS)';
+        sl = parseFloat((hasBullishFVG ? fvgBullBottom - (config.slBuffer * 0.5) : swingLow).toFixed(2));
+        entry = hasBullishFVG ? parseFloat(((fvgBullTop + fvgBullBottom) / 2).toFixed(2)) : parseFloat(curr.close.toFixed(2));
+        tp = parseFloat((entry + (Math.abs(entry - sl) * 2.0)).toFixed(2));
+        signalNote = hasBullishFVG
+          ? `[${tf.toUpperCase()} BOS + FVG] พุ่งทะลุ High ($${swingHigh.toFixed(2)}) ทิ้ง Bullish FVG ที่ $${fvgBullBottom.toFixed(2)}-$${fvgBullTop.toFixed(2)} แนะนำตั้ง Buy Limit ที่โซน FVG`
+          : `[${tf.toUpperCase()} Bullish BOS] ปิดทะลุ High เดิม ($${swingHigh.toFixed(2)}) ยืนยันการขยายเทรนด์ขาขึ้น รอย่อแล้วหาจังหวะ BUY`;
+      } else {
+        const midPoint = (swingHigh + swingLow) / 2;
+        const isPremium = curr.close > midPoint;
+        direction = isPremium ? 'SELL' : 'BUY';
+        setupType = isPremium ? 'Premium Zone Supply Test' : 'Discount Zone Demand Test';
+        if (isPremium) {
+          entry = parseFloat(curr.close.toFixed(2));
+          sl = parseFloat((swingHigh + (config.slBuffer * 0.4)).toFixed(2));
+          tp = parseFloat((midPoint - (config.slBuffer * 0.5)).toFixed(2));
+          signalNote = `[${tf.toUpperCase()} Premium Zone] ราคาไซด์เวย์อยู่ในโซนพรีเมียมใกล้ High ($${swingHigh.toFixed(2)}) แนะนำดัก SELL สั้นเข้าหากึ่งกลาง Range`;
+        } else {
+          entry = parseFloat(curr.close.toFixed(2));
+          sl = parseFloat((swingLow - (config.slBuffer * 0.4)).toFixed(2));
+          tp = parseFloat((midPoint + (config.slBuffer * 0.5)).toFixed(2));
+          signalNote = `[${tf.toUpperCase()} Discount Zone] ราคาลงมาพักตัวในโซนส่วนลดใกล้ Low ($${swingLow.toFixed(2)}) แนะนำดัก BUY สั้นเข้าหากึ่งกลาง Range`;
+        }
+      }
+
       const now = new Date();
       const timeLabel = `${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.`;
-
-      let direction = currPrice > prevLow ? 'BUY' : 'SELL';
-      let entry = currPrice;
-      let sl = direction === 'BUY' ? prevLow - config.slBuffer : prevHigh + config.slBuffer;
-      let tp = direction === 'BUY' ? entry + (Math.abs(entry - sl) * 2.0) : entry - (Math.abs(entry - sl) * 2.0);
-      let setupType = 'SMC Liquidity Sweep + BOS';
-      let note = `[${tf.toUpperCase()} SMC Agent] แนะนำดัก ${direction} ตามโครงสร้างราคาปัจจุบัน`;
-
-      const newAlert = { id: Date.now().toString(), tf: tf.toUpperCase(), time: timeLabel, price: currPrice.toFixed(2), direction, setup: setupType, entry, sl, tp, note };
+      const newAlert = {
+        id: Date.now().toString(),
+        tf: tf.toUpperCase(),
+        time: timeLabel,
+        price: curr.close.toFixed(2),
+        direction,
+        setup: setupType,
+        entry,
+        sl,
+        tp,
+        note: signalNote
+      };
 
       if (notifyUser || agentAlerts.length === 0) {
         agentAlerts.unshift(newAlert);
         if (agentAlerts.length > 15) agentAlerts.pop();
         localStorage.setItem('smc_agent_alerts', JSON.stringify(agentAlerts));
         renderAgentFeed();
+
+        if (notifyUser) {
+          playAlertBeep();
+          sendBrowserNotification(`🎯 สแกน ${tf.toUpperCase()} (${direction})`, `${setupType}\nEntry: $${entry} / SL: $${sl} / TP: $${tp}`);
+        }
       }
     }
 
     function renderAgentFeed() {
       const container = document.getElementById('agentNotificationFeed');
       if (agentAlerts.length === 0) {
-        container.innerHTML = `<div class="text-center text-gray-500 text-xs py-12">ยังไม่มีประวัติสแกน</div>`;
+        container.innerHTML = `<div class="text-center text-gray-500 text-xs py-12">ยังไม่มีประวัติสแกน กดปุ่ม "สแกนทันที" เพื่อตรวจจับโครงสร้าง</div>`;
         return;
       }
       container.innerHTML = agentAlerts.map(a => `
@@ -698,7 +795,7 @@
             </div>
             <button onclick="applyAgentSetupToModal('${a.id}')" class="bg-yellow-500/20 hover:bg-yellow-500 hover:text-black text-yellow-400 border border-yellow-500/40 px-2 py-0.5 rounded text-[11px] font-semibold transition">+ ใช้แผนนี้</button>
           </div>
-          <p class="text-gray-300 text-[11px] mb-1.5">${a.note}</p>
+          <p class="text-gray-300 text-[11px] mb-1.5 leading-relaxed">${a.note}</p>
           <div class="flex justify-between text-[11px] font-mono bg-gray-900 px-2.5 py-1 rounded border border-gray-800">
             <span class="text-gray-300">Entry: <b class="text-white">${a.entry}</b></span>
             <span class="text-red-400">SL: <b>${a.sl}</b></span>
@@ -739,6 +836,27 @@
       }
     }
 
+    function sendBrowserNotification(title, body) {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+    }
+
+    function playAlertBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.18);
+      } catch (e) {}
+    }
+
     // ==========================================
     // JOURNAL & DASHBOARD LOGIC
     // ==========================================
@@ -749,7 +867,6 @@
       const currentYear = new Date().getFullYear();
       const years = new Set([currentYear - 1, currentYear, currentYear + 1]);
       trades.forEach(t => { if (t.date) years.add(parseInt(t.date.slice(0, 4))); });
-      yearSelect.innerHTML = Array.from(years).sort((a, b) => a - b).y = y => `<option value="${y}" class="bg-gray-900">พ.ศ. ${y + 543} (${y})</option>`;
       yearSelect.innerHTML = Array.from(years).sort((a, b) => a - b).map(y => `<option value="${y}" class="bg-gray-900">พ.ศ. ${y + 543} (${y})</option>`).join('');
     }
 
